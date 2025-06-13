@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated } from 'react-native';
+import { BleManager } from 'react-native-ble-plx';
 
 export default function RightScreen() {
   const [connected, setConnected] = useState(false);
@@ -8,16 +9,56 @@ export default function RightScreen() {
   const [heartRate, setHeartRate] = useState(null);
   const intervalRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const bleManager = useRef(new BleManager()).current;
+
+  useEffect(() => {
+    // Check initial Bluetooth state
+    checkBluetoothState();
+
+    // Listen for Bluetooth state changes
+    const subscription = bleManager.onStateChange((state) => {
+      setBluetoothEnabled(state === 'PoweredOn');
+      if (state === 'PoweredOff' && connected) {
+        setConnected(false);
+        Alert.alert('Bluetooth Disconnected', 'Bluetooth was turned off. Heart rate monitoring stopped.');
+      }
+    }, true);
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const checkBluetoothState = async () => {
+    try {
+      const state = await bleManager.state();
+      setBluetoothEnabled(state === 'PoweredOn');
+    } catch (error) {
+      console.error('Error checking Bluetooth state:', error);
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!bluetoothEnabled) {
+      Alert.alert(
+        'Warning',
+        'Please turn on Bluetooth',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    simulateBluetooth();
+  };
 
   const simulateBluetooth = () => {
     setConnecting(true);
     setTimeout(() => {
       setBluetoothEnabled(true);
-      Alert.alert('Bluetooth Enabled', 'Bluetooth has been enabled.');
+      Alert.alert('Bluetooth Enable', 'Bluetooth has been enabled.');
       setTimeout(() => {
         setConnecting(false);
         setConnected(true);
-        Alert.alert('Connected', 'Connected to Samsung Galaxy Watch 3!');
+        Alert.alert('Conected', 'Connected to Samsung Galaxy Watch 3!');
       }, 1500);
     }, 1500);
   };
@@ -47,35 +88,30 @@ export default function RightScreen() {
   }, [connected]);
 
   const randomHeartRate = () => {
-    // Simulate normal resting heart rate (60-100 bpm)
-    return Math.floor(Math.random() * 41) + 60;
+    // Simulate heart rate values between 69 and 74 bpm
+    return Math.floor(Math.random() * 6) + 69;
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Galaxy Watch 3 Heart Rate Monitor</Text>
-      <View style={styles.statusContainer}>
-        <Text style={styles.statusLabel}>
-          Bluetooth: {bluetoothEnabled ? 'Enabled' : 'Disabled'}
-        </Text>
-        <Text style={styles.statusLabel}>
-          Watch: {connected ? 'Connected' : 'Disconnected'}
-        </Text>
-      </View>
+      <Text style={styles.title}>Heart Rate Monitor</Text>
       {!connected ? (
         <TouchableOpacity
           style={styles.button}
-          onPress={simulateBluetooth}
+          onPress={handleConnect}
           disabled={connecting}
         >
           <Text style={styles.buttonText}>
-            {connecting ? 'Connecting...' : 'Connect to Galaxy Watch 3'}
+            {connecting ? 'Connecting...' : 'Connect'}
           </Text>
           {connecting && <ActivityIndicator color="#fff" style={{ marginLeft: 10 }} />}
         </TouchableOpacity>
       ) : (
         <Animated.View style={[styles.heartRateContainer, { opacity: fadeAnim }]}> 
-          <Text style={styles.heartRateValue}>{heartRate} bpm</Text>
+          <View style={styles.heartRateRow}>
+            <Text style={styles.heartRateValue}>{heartRate}</Text>
+            <Text style={styles.heartRateUnit}>bpm</Text>
+          </View>
           <Text style={styles.heartRateStatus}>{getHeartRateStatus(heartRate)}</Text>
         </Animated.View>
       )}
@@ -96,20 +132,26 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#222',
+    backgroundColor: '#1a1a1a',
     padding: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 30,
+    letterSpacing: 1,
   },
   statusContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
     marginBottom: 30,
+    backgroundColor: '#2a2a2a',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
   },
   statusLabel: {
     color: '#bbb',
@@ -117,33 +159,51 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   button: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#D32F2F',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
     flexDirection: 'row',
     marginTop: 10,
     minWidth: 220,
     justifyContent: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
+    letterSpacing: 1,
   },
   heartRateContainer: {
     alignItems: 'center',
     marginTop: 16,
-    backgroundColor: '#333',
+    backgroundColor: '#2a2a2a',
     padding: 30,
-    borderRadius: 16,
-    width: 220,
+    borderRadius: 100,
+    width: 170,
+    borderWidth: 1,
+    borderColor: '#3a3a3a',
+  },
+  heartRateRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 10,
   },
   heartRateValue: {
-    color: '#4CAF50',
+    color: '#D32F2F',
     fontSize: 48,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginRight: 5,
+  },
+  heartRateUnit: {
+    color: '#D32F2F',
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   heartRateStatus: {
     color: '#fff',
