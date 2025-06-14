@@ -9,9 +9,6 @@ export default function LeftScreen() {
   const [medicineName, setMedicineName] = useState('');
   const [timing, setTiming] = useState('morning');
   const [foodRelation, setFoodRelation] = useState('before');
-  const [hour, setHour] = useState('12');
-  const [minute, setMinute] = useState('00');
-  const [ampm, setAmPm] = useState('AM');
 
   const formAnimation = useRef(new Animated.Value(0)).current;
   const plusButtonAnimation = useRef(new Animated.Value(1)).current;
@@ -72,8 +69,7 @@ export default function LeftScreen() {
       id: Date.now(),
       medicineName,
       timing,
-      foodRelation,
-      time: `${hour}:${minute} ${ampm}`
+      foodRelation
     };
     setReminders([...reminders, newReminder]);
     setShowForm(false);
@@ -81,9 +77,6 @@ export default function LeftScreen() {
     setMedicineName('');
     setTiming('morning');
     setFoodRelation('before');
-    setHour('12');
-    setMinute('00');
-    setAmPm('AM');
     // Reset animations
     Animated.parallel([
       Animated.timing(plusButtonAnimation, {
@@ -113,7 +106,6 @@ export default function LeftScreen() {
           placeholder="Enter medicine name"
           placeholderTextColor="#666"
           autoCorrect={false}
-          blurOnSubmit={false}
         />
       </View>
 
@@ -160,7 +152,11 @@ export default function LeftScreen() {
 
   const ReminderList = () => (
     <View style={styles.reminderListContainer}>
-      <ScrollView style={styles.reminderList}>
+      <ScrollView 
+        style={styles.reminderList}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="none"
+      >
         {reminders.map(reminder => (
           <TouchableOpacity
             key={reminder.id}
@@ -176,7 +172,6 @@ export default function LeftScreen() {
             >
               <View style={styles.reminderHeader}>
                 <Text style={styles.reminderName}>{reminder.medicineName}</Text>
-                <Text style={styles.reminderTime}>{reminder.time}</Text>
               </View>
               <View style={styles.reminderDetails}>
                 <Text style={styles.reminderDetail}>
